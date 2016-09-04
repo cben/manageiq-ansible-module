@@ -105,7 +105,7 @@ class ManageIQ(object):
         self.changed       = False
         self.providers_url = self.api_url + '/providers'
 
-    def update_required(self, provider_id, endpoints):
+    def required_updates(self, provider_id, endpoints):
         """ Checks whether an update is required for the provider
 
         Returns:
@@ -118,11 +118,21 @@ class ManageIQ(object):
             self.module.fail_json(msg="Failed to get provider data. Error: %s" % e)
 
         def host_port(endpoint):
-            return (endpoint['hostname'], int(endpoint['port']))
+            return {'hostname': endpoint['hostname'], 'port': int(endpoint['port'])}
 
         desired_by_role = {e['endpoint']['role']: host_port(e['endpoint']) for e in endpoints}
         result_by_role = {e['role']: host_port(e) for e in result['endpoints']}
-        return desired_by_role != result_by_role
+        if result_by_role == desired_by_role:
+            return {}
+        updated = {role: {k: v for k, v in ep.items()
+                          if k not in result_by_role[role] or v != result_by_role[role][k]}
+                   for role, ep in desired_by_role.items()
+                   if role in result_by_role and ep != result_by_role[role]}
+        added = {role: ep for role, ep in desired_by_role.items()
+                 if role not in result_by_role}
+        removed = {role: ep for role, ep in result_by_role.items()
+                   if role not in desired_by_role}
+        return {"Updated": updated, "Added": added, "Removed": removed}
 
     def update_provider(self, provider_id, provider_name, endpoints):
         """ Updates the existing provider with new parameters
@@ -194,9 +204,11 @@ class ManageIQ(object):
         # check if provider with the same name already exists
         provider_id = self.find_provider_by_name(provider_name)
         if provider_id:  # provider exists
-            if self.update_required(provider_id, endpoints):
+            updates = self.required_updates(provider_id, endpoints)
+            if updates:
                 self.update_provider(provider_id, provider_name, endpoints)
-                message = "Successfuly updated %s provider" % provider_name
+                message = "Successfuly updated {provider} provider. Changes: {updates}".format(
+                    provider=provider_name, updates=updates)
             else:
                 message = "Provider %s already exists" % provider_name
         else:  # provider doesn't exists, adding it to manageiq
