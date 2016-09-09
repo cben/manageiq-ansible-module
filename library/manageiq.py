@@ -1,4 +1,5 @@
 #!/usr/bin/python
+print ''  # Fail python 3 to play with per-env Travis status.
 
 from ansible.module_utils.basic import *
 from miqclient.api import API as MiqApi
