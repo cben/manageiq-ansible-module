@@ -17,60 +17,50 @@ NEW_CA = {"id": 6227, "name": "ca2", "value": "value 2"}
 UPDATED_CA_VALUE = "new value"
 DEFAULT_SECTION = "metadata"
 DIFFERENT_SECTION = 'section'
+PROVIDER_URL = "{host}/api/providers/{id}".format(host=MANAGEIQ_HOSTNAME, id=PROVIDER_ID)
 
+
+def provider_ca(section, name, value, id=None, href=False):
+    """Builds a custom attribute hash for provider PROVIDER_ID."""
+    ca = {
+        "resource_id": PROVIDER_ID,
+        "resource_type": "ExtManagementSystem",
+        "section": section,
+        "name": name,
+        "value": value,
+        "serialized_value": value,
+        "source": "EVM",
+    }
+    if id is not None:
+        ca["id"] = id
+    if href:
+        assert id is not None
+        ca["href"] = "{provider}/custom_attributes/{ca_id}".format(provider=PROVIDER_URL, ca_id=id)
+    return ca
 
 GET_RETURN_VALUES = {
     'no_cas': {},
     'ca_exist': {
-        "custom_attributes": [{
-            "href": "{miq_hostname}/api/providers/{provider_id}/custom_attributes/{ca_id}".format(miq_hostname=MANAGEIQ_HOSTNAME, provider_id=PROVIDER_ID, ca_id=EXISTING_CA['id']),
-            "id": EXISTING_CA['id'],
-            "section": DEFAULT_SECTION,
-            "name": EXISTING_CA['name'],
-            "value": EXISTING_CA['value'],
-            "resource_type": "ExtManagementSystem",
-            "resource_id": PROVIDER_ID,
-            "source": "EVM",
-            "serialized_value": EXISTING_CA['value']
-        }]
+        "custom_attributes": [
+            provider_ca(DEFAULT_SECTION, EXISTING_CA['name'], EXISTING_CA['value'], id=EXISTING_CA['id'], href=True),
+        ]
     }
 }
 POST_RETURN_VALUES = {
     'added_ca': {
-        'results': [{
-            "resource_id": PROVIDER_ID,
-            "section": DEFAULT_SECTION,
-            "name": NEW_CA['name'],
-            "id": NEW_CA['id'],
-            "serialized_value": NEW_CA['value'],
-            "value": NEW_CA['value'],
-            "resource_type": "ExtManagementSystem",
-            "source": "EVM"
-        }]
+        'results': [
+            provider_ca(DEFAULT_SECTION, NEW_CA['name'], NEW_CA['value'], id=NEW_CA['id']),
+        ]
     },
     'added_ca_with_section': {
-        'results': [{
-            "resource_id": PROVIDER_ID,
-            "section": DIFFERENT_SECTION,
-            "name": NEW_CA['name'],
-            "id": NEW_CA['id'],
-            "serialized_value": UPDATED_CA_VALUE,
-            "value": UPDATED_CA_VALUE,
-            "resource_type": "ExtManagementSystem",
-            "source": "EVM"
-        }]
+        'results': [
+            provider_ca(DIFFERENT_SECTION, NEW_CA['name'], UPDATED_CA_VALUE, id=NEW_CA['id']),
+        ]
     },
     'updated_ca': {
-        'results': [{
-            "resource_id": PROVIDER_ID,
-            "section": DEFAULT_SECTION,
-            "name": EXISTING_CA['name'],
-            "id": EXISTING_CA['id'],
-            "serialized_value": UPDATED_CA_VALUE,
-            "value": UPDATED_CA_VALUE,
-            "resource_type": "ExtManagementSystem",
-            "source": "EVM"
-        }]
+        'results': [
+            provider_ca(DEFAULT_SECTION, EXISTING_CA['name'], UPDATED_CA_VALUE, id=EXISTING_CA['id']),
+        ]
     }
 }
 
