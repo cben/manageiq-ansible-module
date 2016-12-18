@@ -108,6 +108,8 @@ def miq(miq_api_class, miq_ansible_module, the_provider):
 def test_get_entity_custom_attributes(miq, miq_api_class):
     miq_api_class.return_value.get.return_value = GET_RETURN_VALUES['ca_exist']
     provider_cas = miq.get_entity_custom_attributes('provider', PROVIDER_ID)
+    miq_api_class.return_value.get.assert_called_with(
+        "{provider}?expand=custom_attributes".format(provider=PROVIDER_URL, ca_id=id))
     assert provider_cas == GET_RETURN_VALUES['ca_exist']['custom_attributes']
 
 
@@ -133,6 +135,8 @@ def test_update_existing_custom_attribute(miq, miq_api_class):
 
     updated_ca = [{'name': EXISTING_CA['name'], 'value': UPDATED_CA_VALUE, 'section': DEFAULT_SECTION}]
     result = miq.add_or_update_custom_attributes('provider', PROVIDER_NAME, updated_ca)
+    miq_api_class.return_value.post.assert_called_once_with(
+        "{provider}?expand=custom_attributes".format(provider=PROVIDER_URL, ca_id=id))
     assert result == {
         'changed': True,
         'msg': "Successfully set the custom attributes to {entity_name} {entity_type}".format(entity_name=PROVIDER_NAME, entity_type='provider'),
