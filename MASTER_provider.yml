@@ -1,0 +1,33 @@
+---
+- hosts: localhost
+  gather_facts: no  # setup is slow for me for some reason, don't need it
+
+  tasks:
+  - set_fact:
+      MASTER: '{{ lookup("env", "MASTER") }}'
+      SSL: '{{ ssl | default(True) | bool }}'
+      CA_PATH: '{{ ssl | default(True) | bool | ternary(lookup("env", "HOME") + "/" + lookup("env", "MASTER") + ".ca.crt", "") }}'
+      TOKEN_PATH: '{{ lookup("env", "HOME") + "/" + lookup("env", "MASTER") + ".token" }}'
+  - debug: var=CA_PATH
+  - debug: var=TOKEN_PATH
+  - name: Add Openshift Containers Provider to ManageIQ
+    manageiq_provider:
+      state: '{{ state | default("present") }}'
+      name: '{{ MASTER }}'
+      provider_type: 'openshift-origin'
+      state: 'present'
+      provider_api_hostname: '{{ MASTER }}'
+      provider_api_port: '8443'
+      provider_api_auth_token: '{{ lookup("file", TOKEN_PATH) }}'
+      provider_verify_ssl: '{{ SSL }}'
+      provider_ca_path: '{{ SSL | ternary(CA_PATH, omit) }}'
+      monitoring: 'hawkular'
+      monitoring_hostname: '{{ MASTER }}'  # TODO check route?
+      monitoring_port: '443'
+      miq_url: 'http://localhost:3000'
+      miq_username: 'admin'
+      miq_password: 'smartvm'
+      #miq_verify_ssl: false
+    register: result
+
+  - debug: var=result
